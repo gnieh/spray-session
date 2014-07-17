@@ -94,4 +94,6 @@ class RedisSessionManager[T](config: Config)(
         else
           HttpCookie(name = cookieName, content = id, maxAge = Some(maxAge))
 
+  def shutdown(): Unit =
+    client.shutdown()
 }

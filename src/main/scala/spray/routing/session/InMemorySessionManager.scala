@@ -25,7 +25,8 @@ import akka.actor.{
   ActorSystem,
   Actor,
   Props,
-  Cancellable
+  Cancellable,
+  PoisonPill
 }
 import akka.pattern.ask
 import akka.util.Timeout
@@ -182,5 +183,8 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
 
   def cookify(id: String): Future[HttpCookie] =
     (manager ? Cookify(id)).mapTo[HttpCookie]
+
+  def shutdown(): Unit =
+    manager ! PoisonPill
 
 }

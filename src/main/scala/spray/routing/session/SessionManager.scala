@@ -73,4 +73,7 @@ abstract class SessionManager[T](val config: Config) {
   /** Returns the cookie value for the given session identifier */
   def cookify(id: String): Future[HttpCookie]
 
+  /** Shut this session manager down */
+  def shutdown(): Unit
+
 }
