@@ -1,13 +1,17 @@
 package spray
 package routing
 
-import org.specs2.mutable.Specification
+import org.specs2.mutable.{
+  Specification,
+  After
+}
+import org.specs2.specification.Scope
 
 import testkit.Specs2RouteTest
 
 import directives.SessionDirectives
 
-import session.InMemorySessionManager
+import session.SessionManager
 
 import http._
 import HttpHeaders._
@@ -23,47 +27,59 @@ import akka.util.Timeout
 
 import com.typesafe.config.ConfigFactory
 
-abstract class SessionSpec extends Specification with Specs2RouteTest with HttpService with SessionDirectives[Int] {
-
-  def actorRefFactory = system
+abstract class SessionSpec extends Specification with Specs2RouteTest {
+  self =>
 
   implicit val timeout = new Timeout(Duration(20, SECONDS))
 
-  implicit val ec = system.dispatcher
+  def manager: SessionManager[Int]
 
-  val invalidSessionHandler = RejectionHandler {
-    case InvalidSessionRejection(id) :: _ =>
-      complete(Unauthorized, s"Unknown session $id")
-  }
+  trait SessionApp extends HttpService with SessionDirectives[Int] with Scope with After {
 
-  val sessionRoute =
-    handleRejections(invalidSessionHandler) {
-        cookieSession { (id, map) =>
-          setCookieSession(id) {
-            get {
-              val result = map.getOrElse("value", 0)
-              updateSession(id, map.updated("value", result + 1)) {
-                  complete(result.toString)
-                }
-              } ~
-              delete {
-                invalidateSession(id) {
-                  complete("ok")
-                }
-              }
-          }
-        }
+    def actorRefFactory = system
+
+    implicit val ec = system.dispatcher
+
+    val invalidSessionHandler = RejectionHandler {
+      case InvalidSessionRejection(id) :: _ =>
+        complete(Unauthorized, s"Unknown session $id")
     }
+
+    // create a new manager for each scope
+    val manager = self.manager
+
+    def after = manager.shutdown()
+
+    val sessionRoute =
+      handleRejections(invalidSessionHandler) {
+          cookieSession { (id, map) =>
+            setCookieSession(id) {
+              get {
+                val result = map.getOrElse("value", 0)
+                updateSession(id, map.updated("value", result + 1)) {
+                    complete(result.toString)
+                  }
+                } ~
+                delete {
+                  invalidateSession(id) {
+                    complete("ok")
+                  }
+                }
+            }
+          }
+      }
+
+  }
 
   "Session state" should {
 
-    "be created when no cookie is sent" in {
+    "be created when no cookie is sent" in new SessionApp {
       Get() ~> sessionRoute ~> check {
         responseAs[String] === "0"
       }
     }
 
-    "be kept between two request with same session id" in {
+    "be kept between two request with same session id" in new SessionApp {
       Get() ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
@@ -81,14 +97,14 @@ abstract class SessionSpec extends Specification with Specs2RouteTest with HttpS
       }
     }
 
-    "not be accessible for invalid session identifiers" in {
+    "not be accessible for invalid session identifiers" in new SessionApp {
       Get() ~> addHeader(Cookie(HttpCookie(name = manager.cookieName, content = "%invalid-session-id%"))) ~> sealRoute(sessionRoute) ~> check {
         status === Unauthorized
         responseAs[String] === "Unknown session %invalid-session-id%"
       }
     }
 
-    "be deleted when session was invalidated" in {
+    "be deleted when session was invalidated" in new SessionApp {
       Get() ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
@@ -104,7 +120,7 @@ abstract class SessionSpec extends Specification with Specs2RouteTest with HttpS
       }
     }
 
-    "be deleted after session timeout" in {
+    "be deleted after session timeout" in new SessionApp {
       Get() ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
