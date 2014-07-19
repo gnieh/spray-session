@@ -56,8 +56,8 @@ class RedisSessionManager[T](config: Config)(
 
   private val client =
     RedisClient(
-      config.getString("spray.routing.session.redis.host"),
-      config.getInt("spray.routing.session.redis.port"))
+      host = config.getString("spray.routing.session.redis.host"),
+      port = config.getInt("spray.routing.session.redis.port"))
 
   def start(): Future[String] = {
     val id = newSid
@@ -68,15 +68,28 @@ class RedisSessionManager[T](config: Config)(
   }
 
   def get(id: String): Future[Option[Map[String, T]]] =
-    client.get[Map[String, T]](id)
+    client.get[Map[String, T]](id).flatMap {
+      case Some(map) =>
+        client.expire(id, sessionTimeout.toSeconds.toInt).map(_ => Some(map))
+      case None =>
+        Future.successful(None)
+    }
 
   def isValid(id: String): Future[Boolean] =
-    client.exists(id)
+    client.exists(id).flatMap {
+      case true =>
+        client.expire(id, sessionTimeout.toSeconds.toInt).map(_ => true)
+      case false =>
+        Future.successful(false)
+    }
 
   def update(id: String, map: Map[String, T]): Future[Unit] =
-    for {
-      true <- client.set(id, map)
-    } yield ()
+    client.set(id, map).flatMap {
+      case true =>
+        client.expire(id, sessionTimeout.toSeconds.toInt).map(_ => ())
+      case false =>
+        Future.successful(())
+    }
 
   def invalidate(id: String): Future[Unit] =
     for(1 <- client.del(id))
