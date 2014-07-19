@@ -9,8 +9,6 @@ import spray.json.DefaultJsonProtocol._
 
 class RedisSessionSpec extends SessionSpec {
 
-  skipAllIf(true)
-
   def manager = new RedisSessionManager[Int](ConfigFactory.load())
 
 }

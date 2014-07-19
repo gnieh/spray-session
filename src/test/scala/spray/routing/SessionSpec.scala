@@ -24,6 +24,7 @@ import scala.concurrent.duration.{
 import scala.concurrent.Future
 
 import akka.util.Timeout
+import akka.actor.ActorSystem
 
 import com.typesafe.config.ConfigFactory
 
@@ -36,7 +37,7 @@ abstract class SessionSpec extends Specification with Specs2RouteTest {
 
   trait SessionApp extends HttpService with SessionDirectives[Int] with Scope with After {
 
-    def actorRefFactory = system
+    lazy val actorRefFactory = ActorSystem()
 
     implicit val ec = system.dispatcher
 
@@ -48,7 +49,7 @@ abstract class SessionSpec extends Specification with Specs2RouteTest {
     // create a new manager for each scope
     val manager = self.manager
 
-    def after = manager.shutdown()
+    def after = actorRefFactory.shutdown()
 
     val sessionRoute =
       handleRejections(invalidSessionHandler) {
@@ -74,23 +75,23 @@ abstract class SessionSpec extends Specification with Specs2RouteTest {
   "Session state" should {
 
     "be created when no cookie is sent" in new SessionApp {
-      Get() ~> sessionRoute ~> check {
+      Get("new") ~> sessionRoute ~> check {
         responseAs[String] === "0"
       }
     }
 
     "be kept between two request with same session id" in new SessionApp {
-      Get() ~> sessionRoute ~> check {
+      Get("first") ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
         cookieOpt should beSome
         val cookie = cookieOpt.get.cookie
-        Get() ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
+        Get("second") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
           responseAs[String] === "1"
           val cookieOpt = header[`Set-Cookie`]
           cookieOpt should beSome
           val cookie = cookieOpt.get.cookie
-          Get() ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
+          Get("third") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
             responseAs[String] === "2"
           }
         }
@@ -98,21 +99,21 @@ abstract class SessionSpec extends Specification with Specs2RouteTest {
     }
 
     "not be accessible for invalid session identifiers" in new SessionApp {
-      Get() ~> addHeader(Cookie(HttpCookie(name = manager.cookieName, content = "%invalid-session-id%"))) ~> sealRoute(sessionRoute) ~> check {
+      Get("invalid") ~> addHeader(Cookie(HttpCookie(name = manager.cookieName, content = "%invalid-session-id%"))) ~> sealRoute(sessionRoute) ~> check {
         status === Unauthorized
         responseAs[String] === "Unknown session %invalid-session-id%"
       }
     }
 
     "be deleted when session was invalidated" in new SessionApp {
-      Get() ~> sessionRoute ~> check {
+      Get("create") ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
         cookieOpt should beSome
         val cookie = cookieOpt.get.cookie
-        Delete() ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
+        Delete("delete") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
           responseAs[String] === "ok"
-          Get() ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
+          Get("invalid") ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
             status === Unauthorized
             responseAs[String] === s"Unknown session ${cookie.content}"
           }
@@ -121,13 +122,13 @@ abstract class SessionSpec extends Specification with Specs2RouteTest {
     }
 
     "be deleted after session timeout" in new SessionApp {
-      Get() ~> sessionRoute ~> check {
+      Get("new") ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
         cookieOpt should beSome
         val cookie = cookieOpt.get.cookie
         Thread.sleep(6000)
-        Get() ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
+        Get("timedout") ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
           status === Unauthorized
           responseAs[String] === s"Unknown session ${cookie.content}"
         }
