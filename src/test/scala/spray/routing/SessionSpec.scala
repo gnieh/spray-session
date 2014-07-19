@@ -33,11 +33,13 @@ abstract class SessionSpec extends Specification with Specs2RouteTest {
 
   implicit val timeout = new Timeout(Duration(20, SECONDS))
 
+  implicit lazy val actorRefFactory = ActorSystem()
+
   def manager: SessionManager[Int]
 
   trait SessionApp extends HttpService with SessionDirectives[Int] with Scope with After {
 
-    lazy val actorRefFactory = ActorSystem()
+    def actorRefFactory = system
 
     implicit val ec = system.dispatcher
 
