@@ -29,6 +29,8 @@ import com.typesafe.config.Config
 
 /** Common interface for stateful session managers, making it transparent on how
  *  they are stored and persisted.
+ *  Stateful means that the session data are stored on the server side and are retrieved
+ * using an identifier sent by the client.
  *
  *  @author Lucas Satabin
  */
