@@ -9,9 +9,9 @@ import org.specs2.specification.Scope
 
 import testkit.Specs2RouteTest
 
-import directives.SessionDirectives
+import directives.StatefulSessionDirectives
 
-import session.SessionManager
+import session.StatefulSessionManager
 
 import http._
 import HttpHeaders._
@@ -28,16 +28,16 @@ import akka.actor.ActorSystem
 
 import com.typesafe.config.ConfigFactory
 
-abstract class SessionSpec extends Specification with Specs2RouteTest {
+abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
   self =>
 
   implicit val timeout = new Timeout(Duration(20, SECONDS))
 
   implicit lazy val actorRefFactory = ActorSystem()
 
-  def manager: SessionManager[Int]
+  def manager: StatefulSessionManager[Int]
 
-  trait SessionApp extends HttpService with SessionDirectives[Int] with Scope with After {
+  trait SessionApp extends HttpService with StatefulSessionDirectives[Int] with Scope with After {
 
     def actorRefFactory = system
 

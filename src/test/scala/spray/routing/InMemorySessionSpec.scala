@@ -5,7 +5,7 @@ import session.InMemorySessionManager
 
 import com.typesafe.config.ConfigFactory
 
-class InMemorySessionSpec extends SessionSpec {
+class InMemorySessionSpec extends StatefulSessionSpec {
 
   def manager = new InMemorySessionManager[Int](ConfigFactory.load())
 

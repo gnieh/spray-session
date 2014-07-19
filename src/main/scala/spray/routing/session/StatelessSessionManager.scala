@@ -27,18 +27,13 @@ import util.pimps.PimpedConfig
 
 import com.typesafe.config.Config
 
-/** Common interface for session managers, making it transparent on how
- *  they are stored and persisted
+/** Common interface for stateless session managers, making it transparent on how
+ *  they are stored and persisted.
+ *  Stateless means that the entire session data can be retrieved from the cookie.
  *
  *  @author Lucas Satabin
  */
-abstract class SessionManager[T](val config: Config) {
-
-  private val alpha = "abcdefghijklmnopqrstuvwxyz"
-  private val symbols = alpha + alpha.toUpperCase + "0123456789/=?+-_:"
-  private val symLength = symbols.length
-  private val idLength = 16
-  private val random = new java.security.SecureRandom
+abstract class StatelessSessionManager[T](val config: Config) {
 
   /** The name of the session cookie, configured via configuration key `spray.routing.session.cookie-name` */
   val cookieName: String =
@@ -48,32 +43,19 @@ abstract class SessionManager[T](val config: Config) {
   val sessionTimeout: Duration =
     new PimpedConfig(config).getDuration("spray.routing.session.timeout")
 
-  /** Generates a new identifier */
-  protected def newSid(): String = {
-    val buf = new StringBuilder
-    (1 to idLength).foreach(_ => buf.append(symbols.charAt(random.nextInt(symLength))))
-    buf.toString
-  }
-
   /** Starts a new session with a new identifier */
-  def start(): Future[String]
+  def start(): Future[HttpCookie]
 
-  /** Checks whether the identifier is a valid session identifier */
-  def isValid(id: String): Future[Boolean]
+  /** Checks whether the identifier is a valid session cookie */
+  def isValid(cookie: HttpCookie): Future[Boolean]
 
-  /** Returns the session identified by `id`if it exists and is valid */
-  def get(id: String): Future[Option[Map[String, T]]]
+  /** Returns the session identified by `cookie` if it exists and is valid */
+  def get(cookie: HttpCookie): Future[Option[Map[String, T]]]
 
-  /** Updates the session identified by the given identifier with the given session value */
-  def update(id: String, map: Map[String, T]): Future[Unit]
+  /** Updates the session identified with the given session value */
+  def update(map: Map[String, T]): Future[HttpCookie]
 
   /** Invalidates the given session identified by the given identifier */
-  def invalidate(id: String): Future[Unit]
-
-  /** Returns the cookie value for the given session identifier */
-  def cookify(id: String): Future[HttpCookie]
-
-  /** Shut this session manager down */
-  def shutdown(): Unit
+  def invalidate(): Future[HttpCookie]
 
 }

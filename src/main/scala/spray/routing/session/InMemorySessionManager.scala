@@ -48,7 +48,7 @@ import com.typesafe.config.Config
  *
  *  @author Lucas Satabin
  */
-class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, timeout: Timeout) extends SessionManager[T](config) {
+class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, timeout: Timeout) extends StatefulSessionManager[T](config) {
 
   private val manager = system.actorOf(Props(new ManagerActor))
 

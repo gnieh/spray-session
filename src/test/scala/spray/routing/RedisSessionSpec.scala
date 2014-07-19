@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 
 import spray.json.DefaultJsonProtocol._
 
-class RedisSessionSpec extends SessionSpec {
+class RedisSessionSpec extends StatefulSessionSpec {
 
   def manager = new RedisSessionManager[Int](ConfigFactory.load())
 

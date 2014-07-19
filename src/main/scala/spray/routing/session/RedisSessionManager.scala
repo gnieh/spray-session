@@ -50,7 +50,7 @@ class RedisSessionManager[T](config: Config)(
   implicit system: ActorRefFactory,
   timeout: Timeout,
   format: JsonFormat[T])
-    extends SessionManager[T](config) {
+    extends StatefulSessionManager[T](config) {
 
   import system.dispatcher
 
