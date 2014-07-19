@@ -18,7 +18,7 @@ package spray
 package routing
 package session
 
-import akka.actor.ActorSystem
+import akka.actor.ActorRefFactory
 import akka.util.Timeout
 
 import com.redis.RedisClient
@@ -47,7 +47,7 @@ import http.{
  *  @author Lucas Satabin
  */
 class RedisSessionManager[T](config: Config)(
-  implicit system: ActorSystem,
+  implicit system: ActorRefFactory,
   timeout: Timeout,
   format: JsonFormat[T])
     extends SessionManager[T](config) {
