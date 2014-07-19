@@ -37,7 +37,7 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
   def manager: StatefulSessionManager[Int]
 
-  trait SessionApp extends HttpService with StatefulSessionDirectives[Int] with Scope with After {
+  trait StatefulSessionApp extends HttpService with StatefulSessionDirectives[Int] with Scope with After {
 
     def actorRefFactory = system
 
@@ -76,13 +76,13 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
   "Session state" should {
 
-    "be created when no cookie is sent" in new SessionApp {
+    "be created when no cookie is sent" in new StatefulSessionApp {
       Get("new") ~> sessionRoute ~> check {
         responseAs[String] === "0"
       }
     }
 
-    "be kept between two request with same session id" in new SessionApp {
+    "be kept between two request with same session id" in new StatefulSessionApp {
       Get("first") ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
@@ -100,14 +100,14 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
       }
     }
 
-    "not be accessible for invalid session identifiers" in new SessionApp {
+    "not be accessible for invalid session identifiers" in new StatefulSessionApp {
       Get("invalid") ~> addHeader(Cookie(HttpCookie(name = manager.cookieName, content = "%invalid-session-id%"))) ~> sealRoute(sessionRoute) ~> check {
         status === Unauthorized
         responseAs[String] === "Unknown session %invalid-session-id%"
       }
     }
 
-    "be deleted when session was invalidated" in new SessionApp {
+    "be deleted when session was invalidated" in new StatefulSessionApp {
       Get("create") ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
@@ -123,7 +123,7 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
       }
     }
 
-    "be deleted after session timeout" in new SessionApp {
+    "be deleted after session timeout" in new StatefulSessionApp {
       Get("new") ~> sessionRoute ~> check {
         responseAs[String] === "0"
         val cookieOpt = header[`Set-Cookie`]
