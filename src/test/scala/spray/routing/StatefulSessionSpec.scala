@@ -33,13 +33,13 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
   implicit val timeout = new Timeout(Duration(20, SECONDS))
 
-  implicit lazy val actorRefFactory = ActorSystem()
+  implicit def actorRefFactory = ActorSystem()
 
   def manager: StatefulSessionManager[Int]
 
   trait StatefulSessionApp extends HttpService with StatefulSessionDirectives[Int] with Scope with After {
 
-    def actorRefFactory = system
+    lazy val actorRefFactory = system
 
     implicit val ec = system.dispatcher
 
