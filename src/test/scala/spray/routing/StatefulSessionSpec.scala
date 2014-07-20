@@ -55,19 +55,17 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
     val sessionRoute =
       handleRejections(invalidSessionHandler) {
-          cookieSession { (id, map) =>
-            setCookieSession(id) {
-              get {
-                val result = map.getOrElse("value", 0)
-                updateSession(id, map.updated("value", result + 1)) {
-                    complete(result.toString)
-                  }
-                } ~
-                delete {
-                  invalidateSession(id) {
-                    complete("ok")
-                  }
+          withCookieSession { (id, map) =>
+            get {
+              val result = map.getOrElse("value", 0)
+              updateSession(id, map.updated("value", result + 1)) {
+                  complete(result.toString)
                 }
+            } ~
+            delete {
+              invalidateSession(id) {
+                complete("ok")
+              }
             }
           }
       }
