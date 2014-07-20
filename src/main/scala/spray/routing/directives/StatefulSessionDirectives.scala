@@ -97,4 +97,14 @@ trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives
       case cookie :: HNil => setCookie(cookie)
     }
 
+  /** Extract the session from the cookie and set it back */
+  def withCookieSession: Directive1[Map[String, T]] =
+    cookieSession.hflatMap {
+      case id :: map :: HNil =>
+        setCookieSession(id).hmap {
+          case HNil =>
+            map
+        }
+    }
+
 }
