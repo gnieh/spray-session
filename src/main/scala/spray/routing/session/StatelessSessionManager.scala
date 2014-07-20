@@ -43,8 +43,8 @@ abstract class StatelessSessionManager[T](val config: Config) {
   val sessionTimeout: Duration =
     new PimpedConfig(config).getDuration("spray.routing.session.timeout")
 
-  /** Starts a new session with a new identifier */
-  def start(): Future[HttpCookie]
+  /** Starts a new session */
+  def start(): Future[Map[String, T]]
 
   /** Checks whether the identifier is a valid session cookie */
   def isValid(cookie: HttpCookie): Future[Boolean]
@@ -52,8 +52,8 @@ abstract class StatelessSessionManager[T](val config: Config) {
   /** Returns the session identified by `cookie` if it exists and is valid */
   def get(cookie: HttpCookie): Future[Option[Map[String, T]]]
 
-  /** Updates the session identified with the given session value */
-  def update(map: Map[String, T]): Future[HttpCookie]
+  /** Tranforms the session map into a cookie */
+  def cookify(map: Map[String, T]): Future[HttpCookie]
 
   /** Invalidates the given session identified by the given identifier */
   def invalidate(): Future[HttpCookie]
