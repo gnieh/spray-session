@@ -45,6 +45,12 @@ import java.net.{
  */
 class CookieBakerSessionManager(config: Config)(implicit ec: ExecutionContext) extends StatelessSessionManager[String](config) {
 
+  private lazy val secret =
+    Option(config.getString("spray.routing.session.baker.secret"))
+      .fold(
+        throw new CryptoException("Configuration error: missing `spray.routing.session.baker.secret`")
+      )(_.getBytes("utf-8"))
+
   def get(cookie: HttpCookie): Future[Option[Map[String,String]]] =
     Future(decode(cookie.content))
 
@@ -70,9 +76,6 @@ class CookieBakerSessionManager(config: Config)(implicit ec: ExecutionContext) e
       None
   }
 
-  private val crypto =
-    new Crypto(config)
-
   /** Encodes the data as a `String`. */
   def encode(data: Map[String, String]): String = {
     val encoded =
@@ -82,8 +85,8 @@ class CookieBakerSessionManager(config: Config)(implicit ec: ExecutionContext) e
           .map(d => d._1 + ":" + d._2)
           .mkString("\u0000"), "UTF-8")
 
-    if (isSigned)
-      crypto.sign(encoded) + "-" + encoded
+    if(isSigned)
+      Crypto.mac(encoded, secret) + "-" + encoded
     else
       encoded
   }
@@ -117,7 +120,7 @@ class CookieBakerSessionManager(config: Config)(implicit ec: ExecutionContext) e
       if (isSigned) {
         val splitted = data.split("-")
         val message = splitted.tail.mkString("-")
-        if (safeEquals(splitted(0), crypto.sign(message))) {
+        if (safeEquals(splitted(0), Crypto.mac(message, secret))) {
           urldecode(message)
         }
         else {
