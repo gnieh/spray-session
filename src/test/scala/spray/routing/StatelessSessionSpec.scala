@@ -9,10 +9,7 @@ import org.specs2.specification.Scope
 
 import testkit.Specs2RouteTest
 
-import directives.{
-  StatelessSessionDirectives,
-  WithStatelessManagerMagnet
-}
+import directives._
 
 import session.StatelessSessionManager
 
@@ -40,7 +37,7 @@ abstract class StatelessSessionSpec extends Specification with Specs2RouteTest {
 
   def manager: StatelessSessionManager[String]
 
-  trait StatefulSessionApp extends HttpService with StatelessSessionDirectives[String] with Scope with After {
+  trait StatefulSessionApp extends HttpService with StatelessSessionManagerDirectives[String] with Scope with After {
 
     def actorRefFactory = system
 
