@@ -54,8 +54,6 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
     def after = actorRefFactory.shutdown()
 
-    import WithStatefulManagerMagnet._
-
     val sessionRoute =
       handleRejections(invalidSessionHandler) {
           withCookieSession() { (id, map) =>

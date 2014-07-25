@@ -138,12 +138,4 @@ object WithStatefulManagerMagnet {
       val in = i
     }
 
-  implicit def fromUnit[T](u: Unit)(implicit ec: ExecutionContext,
-    m: StatefulSessionManager[T]): WithStatefulManagerMagnet[Unit,T] =
-    new WithStatefulManagerMagnet[Unit,T] {
-      implicit val executor = ec
-      val manager = m
-      val in = u
-    }
-
 }

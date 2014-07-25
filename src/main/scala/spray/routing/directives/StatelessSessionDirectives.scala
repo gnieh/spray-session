@@ -113,12 +113,4 @@ object WithStatelessManagerMagnet {
       val in = i
     }
 
-  implicit def fromUnit[T](u: Unit)(implicit ec: ExecutionContext,
-    m: StatelessSessionManager[T]): WithStatelessManagerMagnet[Unit,T] =
-    new WithStatelessManagerMagnet[Unit,T] {
-      implicit val executor = ec
-      val manager = m
-      val in = u
-    }
-
 }
