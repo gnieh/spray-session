@@ -20,11 +20,16 @@ package directives
 
 import session.StatefulSessionManager
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{
+  Future,
+  ExecutionContext
+}
 
 import com.typesafe.config.ConfigFactory
 
 import shapeless._
+
+import scala.language.implicitConversions
 
 /** Provides directives that give access to stateful session management.
  *  Statefule means that the session states is saved on the server side.
@@ -37,8 +42,6 @@ trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives
 
   def manager: StatefulSessionManager[T]
 
-  implicit val ec: ExecutionContext
-
   private val config =
     ConfigFactory.load()
 
@@ -46,28 +49,28 @@ trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives
     config.getString("spray.routing.session.cookie-name")
 
   /** Returns the session with the given identifier if it exists and has not expired */
-  def session(id: String): Directive1[Option[Map[String, T]]] =
-    onSuccess(manager.get(id))
+  def session(magnet: WithStatefulManagerMagnet[String, T]): Directive1[Option[Map[String, T]]] =
+    magnet.directive(_.get(magnet.in))
 
   /** Creates a new session and returns its identifier */
-  def newSession(): Directive1[String] =
-    onSuccess(manager.start())
+  def newSession(magnet: WithStatefulManagerMagnet[Unit, T]): Directive1[String] =
+    magnet.directive(_.start())
 
   /** Updates the current session map with the given (key, value) association */
-  def updateSession(id: String, map: Map[String, T]): Directive0 =
-    onSuccess(manager.update(id, map)).hflatMap(_ => pass)
+  def updateSession(magnet: WithStatefulManagerMagnet[(String, Map[String, T]), T]): Directive0 =
+    magnet.directive(_.update(magnet.in._1, magnet.in._2)).hflatMap(_ => pass)
 
   /** Invalidates the given session identifier */
-  def invalidateSession(id: String): Directive0 =
-    onSuccess(manager.invalidate(id)).hflatMap(_ => pass)
+  def invalidateSession(magnet: WithStatefulManagerMagnet[String, T]): Directive0 =
+    magnet.directive(_.invalidate(magnet.in)).hflatMap(_ => pass)
 
   /** Gets the current session givven by the cookie if any.
    *  If no session cookie exists, a new session is started and returned.
    *  If an invalid or expired session identifier is given, the request is rejected */
-  def cookieSession: Directive[String :: Map[String, T] :: HNil] =
+  def cookieSession(magnet: WithStatefulManagerMagnet[Unit, T]): Directive[String :: Map[String, T] :: HNil] =
     optionalCookie(cookieName).hflatMap {
       case Some(cookie) :: HNil =>
-        session(cookie.content).hflatMap {
+        magnet.directive(_.get(cookie.content)).hflatMap {
           case Some(sess) :: HNil =>
             hprovide(cookie.content :: sess :: HNil)
           case None :: HNil =>
@@ -76,9 +79,9 @@ trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives
         }
 
       case None :: HNil =>
-        newSession.hflatMap {
+        magnet.directive(_.start()).hflatMap {
           case id :: HNil =>
-            session(id).hflatMap {
+            magnet.directive(_.get(id)).hflatMap {
               case Some(map) :: HNil =>
                 hprovide(id :: map :: HNil)
               case None :: HNil =>
@@ -92,19 +95,55 @@ trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives
     }
 
   /** Sets the cookie session to send back to the client */
-  def setCookieSession(id: String): Directive0 =
-    onSuccess(manager.cookify(id)).hflatMap {
+  def setCookieSession(magnet: WithStatefulManagerMagnet[String, T]): Directive0 =
+    magnet.directive(_.cookify(magnet.in)).hflatMap {
       case cookie :: HNil => setCookie(cookie)
     }
 
   /** Extract the session from the cookie and set it back */
-  def withCookieSession: Directive[String :: Map[String, T] :: HNil] =
-    cookieSession.hflatMap {
+  def withCookieSession(magnet: WithStatefulManagerMagnet[Unit, T]): Directive[String :: Map[String, T] :: HNil] =
+    cookieSession(magnet).hflatMap {
       case id :: map :: HNil =>
-        setCookieSession(id).hmap {
-          case HNil =>
-            id :: map :: HNil
+        magnet.directive(_.cookify(id)).hflatMap {
+          case cookie :: HNil =>
+            setCookie(cookie).hmap { _ =>
+              id :: map :: HNil
+            }
         }
+    }
+
+}
+
+trait WithStatefulManagerMagnet[In,T] {
+  import FutureDirectives._
+
+  implicit val executor: ExecutionContext
+
+  implicit val manager: StatefulSessionManager[T]
+
+  val in: In
+
+  def directive[Out](action: StatefulSessionManager[T] => Future[Out]): Directive1[Out] =
+    onSuccess(action(manager))
+
+}
+
+object WithStatefulManagerMagnet {
+
+  implicit def apply[In,T](i: In)(implicit ec: ExecutionContext,
+    m: StatefulSessionManager[T]): WithStatefulManagerMagnet[In,T] =
+    new WithStatefulManagerMagnet[In,T] {
+      implicit val executor = ec
+      val manager = m
+      val in = i
+    }
+
+  implicit def fromUnit[T](u: Unit)(implicit ec: ExecutionContext,
+    m: StatefulSessionManager[T]): WithStatefulManagerMagnet[Unit,T] =
+    new WithStatefulManagerMagnet[Unit,T] {
+      implicit val executor = ec
+      val manager = m
+      val in = u
     }
 
 }

@@ -9,7 +9,10 @@ import org.specs2.specification.Scope
 
 import testkit.Specs2RouteTest
 
-import directives.StatefulSessionDirectives
+import directives.{
+  StatefulSessionDirectives,
+  WithStatefulManagerMagnet
+}
 
 import session.StatefulSessionManager
 
@@ -41,21 +44,21 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
     lazy val actorRefFactory = system
 
-    implicit val ec = system.dispatcher
-
     val invalidSessionHandler = RejectionHandler {
       case InvalidSessionRejection(id) :: _ =>
         complete(Unauthorized, s"Unknown session $id")
     }
 
     // create a new manager for each scope
-    val manager = self.manager
+    implicit val manager = self.manager
 
     def after = actorRefFactory.shutdown()
 
+    import WithStatefulManagerMagnet._
+
     val sessionRoute =
       handleRejections(invalidSessionHandler) {
-          withCookieSession { (id, map) =>
+          withCookieSession() { (id, map) =>
             get {
               val result = map.getOrElse("value", 0)
               updateSession(id, map.updated("value", result + 1)) {
