@@ -27,8 +27,6 @@ import scala.concurrent.{
   ExecutionContext
 }
 
-import com.typesafe.config.ConfigFactory
-
 import shapeless._
 
 import scala.language.implicitConversions
@@ -42,12 +40,6 @@ import scala.language.implicitConversions
  *  @author Lucas Satabin
  */
 trait StatelessSessionDirectives[T] extends BasicDirectives with CookieDirectives with FutureDirectives with RouteDirectives {
-
-  private val config =
-    ConfigFactory.load()
-
-  private val cookieName =
-    config.getString("spray.routing.session.cookie-name")
 
   /** Returns the session data extracted from the cookie if it is valid */
   def session(magnet: WithStatelessManagerMagnet[HttpCookie,T]): Directive1[Option[Map[String, T]]] =
@@ -67,7 +59,7 @@ trait StatelessSessionDirectives[T] extends BasicDirectives with CookieDirective
    *  If no session cookie exists, a new session is started and returned.
    *  If an invalid session cookie is given, the request is rejected */
   def cookieSession(magnet: WithStatelessManagerMagnet[Unit,T]): Directive1[Map[String, T]] =
-    optionalCookie(cookieName).hflatMap {
+    optionalCookie(magnet.manager.cookieName).hflatMap {
       case Some(cookie) :: HNil =>
         magnet.directive(_.get(cookie)).hflatMap {
           case Some(sess) :: HNil =>

@@ -25,28 +25,18 @@ import scala.concurrent.{
   ExecutionContext
 }
 
-import com.typesafe.config.ConfigFactory
-
 import shapeless._
 
 import scala.language.implicitConversions
 
 /** Provides directives that give access to stateful session management.
- *  Statefule means that the session states is saved on the server side.
+ *  Stateful means that the session states is saved on the server side.
  *  It is retrieved from a cookie which name can be configured using the
  *  `spray.routing.session.cookie-name` configuration key.
  *
  *  @author Lucas Satabin
  */
 trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives with FutureDirectives with RouteDirectives {
-
-  def manager: StatefulSessionManager[T]
-
-  private val config =
-    ConfigFactory.load()
-
-  private val cookieName =
-    config.getString("spray.routing.session.cookie-name")
 
   /** Returns the session with the given identifier if it exists and has not expired */
   def session(magnet: WithStatefulManagerMagnet[String, T]): Directive1[Option[Map[String, T]]] =
@@ -68,7 +58,7 @@ trait StatefulSessionDirectives[T] extends BasicDirectives with CookieDirectives
    *  If no session cookie exists, a new session is started and returned.
    *  If an invalid or expired session identifier is given, the request is rejected */
   def cookieSession(magnet: WithStatefulManagerMagnet[Unit, T]): Directive[String :: Map[String, T] :: HNil] =
-    optionalCookie(cookieName).hflatMap {
+    optionalCookie(magnet.manager.cookieName).hflatMap {
       case Some(cookie) :: HNil =>
         magnet.directive(_.get(cookie.content)).hflatMap {
           case Some(sess) :: HNil =>
