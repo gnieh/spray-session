@@ -57,7 +57,7 @@ class MyService(implicit val actorRefFactory: ActorSystem) extends HttpService w
 }
 ```
 
-~~~~~~~~
+* * *
 
 ```scala
 import spray.routing._
