@@ -36,7 +36,7 @@ import scala.language.implicitConversions
  *
  *  @author Lucas Satabin
  */
-trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDirectives with FutureDirectives with RouteDirectives {
+trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDirectives with RouteDirectives {
 
   /** Returns the session with the given identifier if it exists and has not expired */
   def session(magnet: WithStatefulManagerMagnet[String, T]): Directive1[Option[Map[String, T]]] =
