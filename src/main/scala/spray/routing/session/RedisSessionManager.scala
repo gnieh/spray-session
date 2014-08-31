@@ -107,6 +107,10 @@ class RedisSessionManager[T](config: Config)(
         else
           HttpCookie(name = cookieName, content = id, maxAge = Some(maxAge))
 
+  /** This operation is not supported for Redis session manager */
+  def onInvalidate(callback: (String, Map[String, T]) => Unit): Unit =
+    throw new UnsupportedOperationException("Redis session manager does not support invalidate callbacks")
+
   def shutdown(): Unit =
     client.shutdown()
 }

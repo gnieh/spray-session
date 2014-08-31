@@ -75,6 +75,11 @@ abstract class StatefulSessionManager[T](val config: Config) {
   /** Returns the cookie value for the given session identifier */
   def cookify(id: String): Future[HttpCookie]
 
+  /** Registers a callback that gets called whenever a session is invalidated.
+   *  This feature may not be present with all implementations, please refer
+   *  to their documentation. */
+  def onInvalidate(callback: (String, Map[String, T]) => Unit): Unit
+
   /** Shut this session manager down */
   def shutdown(): Unit
 

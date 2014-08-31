@@ -54,7 +54,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
 
   private class ManagerActor extends Actor {
 
-    def receive = running(Map())
+    def receive = running(Map(), Set())
 
     private var cancellable: Option[Cancellable] = None
 
@@ -79,7 +79,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
       cancellable = None
     }
 
-    def running(sessions: Map[String, Session]): Receive = {
+    def running(sessions: Map[String, Session[T]], callbacks: Set[(String, Map[String, T]) => Unit]): Receive = {
       case Start =>
         val id = newSid
         val expires =
@@ -87,14 +87,14 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
             Some(restamp)
           else
             None
-        context.become(running(sessions + (id -> Session(Map(), expires))))
+        context.become(running(sessions + (id -> Session(Map(), expires)), callbacks))
         sender ! id
 
       case Get(id) =>
         sessions.get(id) match {
           case Some(sess @ Session(map, Some(expires))) if expires > DateTime.now =>
             // expiration is in the future, return the map
-            context.become(running(sessions.updated(id, Session(map, Some(restamp)))))
+            context.become(running(sessions.updated(id, Session(map, Some(restamp))), callbacks))
             sender ! Some(map)
 
           case Some(Session(map, None)) =>
@@ -120,12 +120,12 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
         sessions.get(id) match {
           case Some(Session(_, Some(expires))) if expires > DateTime.now =>
             // only update a session if it exists and is valid
-            context.become(running(sessions.updated(id, Session(map, Some(restamp)))))
+            context.become(running(sessions.updated(id, Session(map, Some(restamp))), callbacks))
             sender ! ()
 
           case Some(Session(_, None)) =>
             // no expiration, always valid
-            context.become(running(sessions.updated(id, Session(map, None))))
+            context.become(running(sessions.updated(id, Session(map, None)), callbacks))
             sender ! ()
 
           case None | Some(_) =>
@@ -136,8 +136,18 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
 
       case Invalidate(id) =>
         // instantaneously invalidate the given session id
-        context.become(running(sessions - id))
+        context.become(running(sessions - id, callbacks))
+
+        // notify the callbacks
+        if(sessions.contains(id))
+          for(callback <- callbacks)
+            callback(id, sessions(id).map)
+
         sender ! ()
+
+      case OnInvalidate(callback) =>
+        // register the callback
+        context.become(running(sessions, callbacks + callback))
 
       case Cleanup =>
         // remove expired sessions
@@ -148,7 +158,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
             true
         }
         // continue with valid sessions only
-        context.become(running(valid))
+        context.become(running(valid, callbacks))
         // invalidate other ones
         for((id, _) <- expired)
           self ! Invalidate(id)
@@ -162,6 +172,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
   private case class Update(id: String, map: Map[String, T])
   private case class Invalidate(id: String)
   private case class Cookify(id: String)
+  private case class OnInvalidate(callback: (String, Map[String, T]) => Unit)
   private case object Cleanup
 
   import system.dispatcher
@@ -183,6 +194,9 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
 
   def cookify(id: String): Future[HttpCookie] =
     (manager ? Cookify(id)).mapTo[HttpCookie]
+
+  def onInvalidate(callback: (String, Map[String, T]) => Unit): Unit =
+    (manager ! OnInvalidate(callback))
 
   def shutdown(): Unit =
     manager ! PoisonPill

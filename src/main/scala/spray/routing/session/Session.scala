@@ -20,4 +20,4 @@ package session
 
 import http.DateTime
 
-private case class Session(map: Map[String, Any], expires: Option[DateTime])
+private case class Session[T](map: Map[String, T], expires: Option[DateTime])
