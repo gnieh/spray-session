@@ -20,8 +20,8 @@ The first one demonstrates the use of a stateful session manager, and the second
 
 ```scala
 import spray.routing._
-import directives._
 import session._
+import directives._
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
@@ -61,8 +61,8 @@ class MyService(implicit val actorRefFactory: ActorSystem) extends HttpService w
 
 ```scala
 import spray.routing._
-import directives._
 import session._
+import directives._
 
 import akka.actor.ActorSystem
 

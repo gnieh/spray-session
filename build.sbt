@@ -24,8 +24,6 @@ scalacOptions ++= Seq("-deprecation", "-feature")
 
 osgiSettings
 
-resourceDirectories in Compile := List()
-
 OsgiKeys.exportPackage := Seq(
   "spray.routing.session.directives",
   "spray.routing.session"
