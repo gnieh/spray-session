@@ -16,13 +16,19 @@
 
 package spray
 package routing
+package session
 package directives
-
-import session.StatefulSessionManager
 
 import scala.concurrent.{
   Future,
   ExecutionContext
+}
+
+import spray.routing.directives.{
+  BasicDirectives,
+  CookieDirectives,
+  RouteDirectives,
+  FutureDirectives
 }
 
 import shapeless._

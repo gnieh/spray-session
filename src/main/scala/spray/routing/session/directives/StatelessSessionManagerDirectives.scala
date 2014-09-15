@@ -16,11 +16,17 @@
 
 package spray
 package routing
+package session
 package directives
 
-import session.StatelessSessionManager
+import spray.http.HttpCookie
 
-import http.HttpCookie
+import spray.routing.directives.{
+  BasicDirectives,
+  CookieDirectives,
+  RouteDirectives,
+  FutureDirectives
+}
 
 import scala.concurrent.{
   Future,

@@ -1,5 +1,6 @@
 package spray
 package routing
+package session
 
 import org.specs2.mutable.{
   Specification,
@@ -10,8 +11,6 @@ import org.specs2.specification.Scope
 import testkit.Specs2RouteTest
 
 import directives._
-
-import session.StatefulSessionManager
 
 import http._
 import HttpHeaders._
@@ -28,18 +27,18 @@ import akka.actor.ActorSystem
 
 import com.typesafe.config.ConfigFactory
 
-abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
+abstract class StatelessSessionSpec extends Specification with Specs2RouteTest {
   self =>
 
   implicit val timeout = new Timeout(Duration(20, SECONDS))
 
-  implicit def actorRefFactory = ActorSystem()
+  implicit lazy val actorRefFactory = ActorSystem()
 
-  def manager: StatefulSessionManager[Int]
+  def manager: StatelessSessionManager[String]
 
-  trait StatefulSessionApp extends HttpService with StatefulSessionManagerDirectives[Int] with Scope with After {
+  trait StatefulSessionApp extends HttpService with StatelessSessionManagerDirectives[String] with Scope with After {
 
-    lazy val actorRefFactory = system
+    def actorRefFactory = system
 
     val invalidSessionHandler = RejectionHandler {
       case InvalidSessionRejection(id) :: _ =>
@@ -53,15 +52,15 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
     val sessionRoute =
       handleRejections(invalidSessionHandler) {
-          withCookieSession() { (id, map) =>
+          cookieSession() { map =>
             get {
-              val result = map.getOrElse("value", 0)
-              updateSession(id, map.updated("value", result + 1)) {
-                  complete(result.toString)
-                }
+              val result = map.getOrElse("value", "0")
+              setCookieSession(map.updated("value", (result.toInt + 1).toString)) {
+                complete(result)
+              }
             } ~
             delete {
-              invalidateSession(id) {
+              invalidate() {
                 complete("ok")
               }
             }
@@ -100,36 +99,6 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
       Get("invalid") ~> addHeader(Cookie(HttpCookie(name = manager.cookieName, content = "%invalid-session-id%"))) ~> sealRoute(sessionRoute) ~> check {
         status === Unauthorized
         responseAs[String] === "Unknown session %invalid-session-id%"
-      }
-    }
-
-    "be deleted when session was invalidated" in new StatefulSessionApp {
-      Get("create") ~> sessionRoute ~> check {
-        responseAs[String] === "0"
-        val cookieOpt = header[`Set-Cookie`]
-        cookieOpt should beSome
-        val cookie = cookieOpt.get.cookie
-        Delete("delete") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
-          responseAs[String] === "ok"
-          Get("invalid") ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
-            status === Unauthorized
-            responseAs[String] === s"Unknown session ${cookie.content}"
-          }
-        }
-      }
-    }
-
-    "be deleted after session timeout" in new StatefulSessionApp {
-      Get("new") ~> sessionRoute ~> check {
-        responseAs[String] === "0"
-        val cookieOpt = header[`Set-Cookie`]
-        cookieOpt should beSome
-        val cookie = cookieOpt.get.cookie
-        Thread.sleep(6000)
-        Get("timedout") ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
-          status === Unauthorized
-          responseAs[String] === s"Unknown session ${cookie.content}"
-        }
       }
     }
 

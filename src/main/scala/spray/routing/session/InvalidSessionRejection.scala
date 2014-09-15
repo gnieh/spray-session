@@ -14,6 +14,8 @@
 * limitations under the License.
 */
 
-package spray.routing
+package spray.routing.session
+
+import spray.routing.Rejection
 
 case class InvalidSessionRejection(valueName: String) extends Rejection

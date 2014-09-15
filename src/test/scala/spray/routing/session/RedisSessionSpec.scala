@@ -1,7 +1,6 @@
 package spray
 package routing
-
-import session.RedisSessionManager
+package session
 
 import com.typesafe.config.ConfigFactory
 

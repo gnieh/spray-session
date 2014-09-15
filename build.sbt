@@ -21,3 +21,26 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.5" % "provided
 libraryDependencies += "net.debasishg" %% "redisreact" % "0.6" % "optional"
 
 scalacOptions ++= Seq("-deprecation", "-feature")
+
+osgiSettings
+
+resourceDirectories in Compile := List()
+
+OsgiKeys.exportPackage := Seq(
+  "spray.routing.session.directives",
+  "spray.routing.session"
+)
+
+OsgiKeys.importPackage := Seq(
+  "com.redis;resolution:=optional",
+  "com.redis.*;resolution:=optional",
+  "*"
+)
+
+OsgiKeys.additionalHeaders := Map (
+  "Bundle-Name" -> "Session Management for Spray"
+)
+
+OsgiKeys.bundleSymbolicName := "org.gnieh.spray.session"
+
+OsgiKeys.privatePackage := Seq()
