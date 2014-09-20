@@ -109,10 +109,10 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
       case Cookify(id) =>
         sessions.get(id) match {
           case Some(sess @ Session(_, expires)) if expires.map(_ > DateTime.now).getOrElse(true) =>
-            sender ! HttpCookie(name = cookieName, content = id, expires = expires)
+            sender ! HttpCookie(name = cookieName, content = id, expires = expires, path = None)
           case None | Some(_) =>
             // unknown session or expired session
-            sender ! HttpCookie(name = cookieName, content = "", maxAge = Some(-1))
+            sender ! HttpCookie(name = cookieName, content = "", maxAge = Some(-1), path = None)
 
         }
 

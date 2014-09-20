@@ -71,24 +71,28 @@ trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDir
             hprovide(cookie.content :: sess :: HNil)
           case None :: HNil =>
             // the session does not exist or has expired, reject
-            reject(InvalidSessionRejection(cookie.content))
+            // just start a new one
+            startFresh(magnet)
         }
 
       case None :: HNil =>
-        magnet.directive(_.start()).hflatMap {
-          case id :: HNil =>
-            magnet.directive(_.get(id)).hflatMap {
-              case Some(map) :: HNil =>
-                hprovide(id :: map :: HNil)
-              case None :: HNil =>
-                // actually, this case should never happen if we configured a meaningful
-                // timeout (merely meaning, not so ridiculously small, that the session
-                // already timed out between the time it was created just above and now)
-                reject(InvalidSessionRejection(id))
-            }
-        }
+        startFresh(magnet)
 
     }
+
+  private def startFresh(magnet: WithStatefulManagerMagnet[Unit, T]): Directive[String :: Map[String, T] :: HNil] =
+      magnet.directive(_.start()).hflatMap {
+        case id :: HNil =>
+          magnet.directive(_.get(id)).hflatMap {
+            case Some(map) :: HNil =>
+              hprovide(id :: map :: HNil)
+            case None :: HNil =>
+              // actually, this case should never happen if we configured a meaningful
+              // timeout (merely meaning, not so ridiculously small, that the session
+              // already timed out between the time it was created just above and now)
+              reject(InvalidSessionRejection(id))
+          }
+      }
 
   /** Sets the cookie session to send back to the client */
   def setCookieSession(magnet: WithStatefulManagerMagnet[String, T]): Directive0 =
