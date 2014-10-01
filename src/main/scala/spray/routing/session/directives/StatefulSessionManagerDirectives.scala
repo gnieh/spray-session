@@ -71,8 +71,11 @@ trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDir
             hprovide(cookie.content :: sess :: HNil)
           case None :: HNil =>
             // the session does not exist or has expired, reject
-            // just start a new one
-            startFresh(magnet)
+            // just start a new one and discard old cookie
+            deleteCookie(cookie).hflatMap {
+              case HNil =>
+                startFresh(magnet)
+            }
         }
 
       case None :: HNil =>
