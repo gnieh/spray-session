@@ -95,10 +95,9 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
       }
     }
 
-    "not be accessible for invalid session identifiers" in new StatefulSessionApp {
+    "be renewed for invalid session identifiers" in new StatefulSessionApp {
       Get("invalid") ~> addHeader(Cookie(HttpCookie(name = manager.cookieName, content = "%invalid-session-id%"))) ~> sealRoute(sessionRoute) ~> check {
-        status === Unauthorized
-        responseAs[String] === "Unknown session %invalid-session-id%"
+        responseAs[String] === "0"
       }
     }
 
@@ -111,8 +110,7 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
         Delete("delete") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
           responseAs[String] === "ok"
           Get("invalid") ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
-            status === Unauthorized
-            responseAs[String] === s"Unknown session ${cookie.content}"
+            responseAs[String] === s"0"
           }
         }
       }
@@ -126,8 +124,7 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
         val cookie = cookieOpt.get.cookie
         Thread.sleep(6000)
         Get("timedout") ~> addHeader(Cookie(cookie)) ~> sealRoute(sessionRoute) ~> check {
-          status === Unauthorized
-          responseAs[String] === s"Unknown session ${cookie.content}"
+          responseAs[String] === s"0"
         }
       }
     }
