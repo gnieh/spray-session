@@ -52,7 +52,7 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
 
     val sessionRoute =
       handleRejections(invalidSessionHandler) {
-          withCookieSession() { (id, map) =>
+          cookieSession() { (id, map) =>
             get {
               val result = map.getOrElse("value", 0)
               updateSession(id, map.updated("value", result + 1)) {
@@ -86,8 +86,7 @@ abstract class StatefulSessionSpec extends Specification with Specs2RouteTest {
         Get("second") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
           responseAs[String] === "1"
           val cookieOpt = header[`Set-Cookie`]
-          cookieOpt should beSome
-          val cookie = cookieOpt.get.cookie
+          cookieOpt should beNone
           Get("third") ~> addHeader(Cookie(cookie)) ~> sessionRoute ~> check {
             responseAs[String] === "2"
           }

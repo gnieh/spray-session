@@ -88,7 +88,12 @@ trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDir
         case id :: HNil =>
           magnet.directive(_.get(id)).hflatMap {
             case Some(map) :: HNil =>
-              hprovide(id :: map :: HNil)
+              magnet.directive(_.cookify(id)).hflatMap {
+                case cookie :: HNil =>
+                  setCookie(cookie).hmap { _ =>
+                    id :: map :: HNil
+                  }
+              }
             case None :: HNil =>
               // actually, this case should never happen if we configured a meaningful
               // timeout (merely meaning, not so ridiculously small, that the session
@@ -101,18 +106,6 @@ trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDir
   def setCookieSession(magnet: WithStatefulManagerMagnet[String, T]): Directive0 =
     magnet.directive(_.cookify(magnet.in)).hflatMap {
       case cookie :: HNil => setCookie(cookie)
-    }
-
-  /** Extract the session from the cookie and set it back */
-  def withCookieSession(magnet: WithStatefulManagerMagnet[Unit, T]): Directive[String :: Map[String, T] :: HNil] =
-    cookieSession(magnet).hflatMap {
-      case id :: map :: HNil =>
-        magnet.directive(_.cookify(id)).hflatMap {
-          case cookie :: HNil =>
-            setCookie(cookie).hmap { _ =>
-              id :: map :: HNil
-            }
-        }
     }
 
 }
