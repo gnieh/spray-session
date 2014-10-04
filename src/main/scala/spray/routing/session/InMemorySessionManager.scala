@@ -121,12 +121,12 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
           case Some(Session(_, Some(expires))) if expires > DateTime.now =>
             // only update a session if it exists and is valid
             context.become(running(sessions.updated(id, Session(map, Some(restamp))), callbacks))
-            sender ! ()
+            sender ! Unit
 
           case Some(Session(_, None)) =>
             // no expiration, always valid
             context.become(running(sessions.updated(id, Session(map, None)), callbacks))
-            sender ! ()
+            sender ! Unit
 
           case None | Some(_) =>
             // unknown or expired session
@@ -143,7 +143,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
           for(callback <- callbacks)
             callback(id, sessions(id).map)
 
-        sender ! ()
+        sender ! Unit
 
       case OnInvalidate(callback) =>
         // register the callback

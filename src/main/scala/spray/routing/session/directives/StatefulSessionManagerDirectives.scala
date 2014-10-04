@@ -31,6 +31,8 @@ import spray.routing.directives.{
   FutureDirectives
 }
 
+import spray.http.HttpHeaders
+
 import shapeless._
 
 import scala.language.implicitConversions
@@ -90,7 +92,7 @@ trait StatefulSessionManagerDirectives[T] extends BasicDirectives with CookieDir
             case Some(map) :: HNil =>
               magnet.directive(_.cookify(id)).hflatMap {
                 case cookie :: HNil =>
-                  setCookie(cookie).hmap { _ =>
+                  (mapRequest(_.withHeaders(HttpHeaders.Cookie(cookie))) & setCookie(cookie)).hmap { _ =>
                     id :: map :: HNil
                   }
               }
