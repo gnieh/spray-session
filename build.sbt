@@ -8,11 +8,11 @@ scalaVersion := "2.11.2"
 
 crossScalaVersions := Seq("2.11.2", "2.10.4")
 
-libraryDependencies += "io.spray" %% "spray-json" % "1.2.6" % "optional"
+libraryDependencies += "io.spray" %% "spray-json" % "1.3.0" % "optional"
 
-libraryDependencies += "io.spray" %% "spray-routing" % "1.3.1"
+libraryDependencies += "io.spray" %% "spray-routing" % "1.3.2"
 
-libraryDependencies += "io.spray" %% "spray-testkit" % "1.3.1" % "test"
+libraryDependencies += "io.spray" %% "spray-testkit" % "1.3.2" % "test"
 
 libraryDependencies += "org.specs2" %% "specs2" % "2.3.13" % "test"
 
