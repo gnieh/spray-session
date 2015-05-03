@@ -100,12 +100,12 @@ class RedisSessionManager[T](config: Config)(
       yield
         if(maxAge <= -2)
           // unknown session
-          HttpCookie(name = cookieName, content = "", maxAge = Some(-1))
+          HttpCookie(name = cookieName, content = "", maxAge = Some(-1), path = cookiePath, domain = cookieDomain, secure = cookieSecure, httpOnly = cookieHttpOnly )
         else if(maxAge == -1)
           // no ttl for this key
-          HttpCookie(name = cookieName, content = id)
+          HttpCookie(name = cookieName, content = id, path = cookiePath, domain = cookieDomain, secure = cookieSecure, httpOnly = cookieHttpOnly )
         else
-          HttpCookie(name = cookieName, content = id, maxAge = Some(maxAge))
+          HttpCookie(name = cookieName, content = id, maxAge = Some(maxAge), path = cookiePath, domain = cookieDomain, secure = cookieSecure, httpOnly = cookieHttpOnly )
 
   /** This operation is not supported for Redis session manager */
   def onInvalidate(callback: (String, Map[String, T]) => Unit): Unit =

@@ -34,7 +34,7 @@ import com.typesafe.config.Config
  *
  *  @author Lucas Satabin
  */
-abstract class StatefulSessionManager[T](val config: Config) {
+abstract class StatefulSessionManager[T](val config: Config) extends CookieManager[String] {
 
   private val alpha = "abcdefghijklmnopqrstuvwxyz"
   private val symbols = alpha + alpha.toUpperCase + "0123456789/=?+-_:"
@@ -42,9 +42,6 @@ abstract class StatefulSessionManager[T](val config: Config) {
   private val idLength = 16
   private val random = new java.security.SecureRandom
 
-  /** The name of the session cookie, configured via configuration key `spray.routing.session.cookie-name` */
-  val cookieName: String =
-    config.getString("spray.routing.session.cookie-name")
 
   /** The duration of a session, configured via configuration key `spray.routing.session.timeout` */
   val sessionTimeout: Duration =
@@ -73,7 +70,7 @@ abstract class StatefulSessionManager[T](val config: Config) {
   def invalidate(id: String): Future[Unit]
 
   /** Returns the cookie value for the given session identifier */
-  def cookify(id: String): Future[HttpCookie]
+  def cookify(payload: String): Future[HttpCookie]
 
   /** Registers a callback that gets called whenever a session is invalidated.
    *  This feature may not be present with all implementations, please refer
