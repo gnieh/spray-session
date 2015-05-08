@@ -33,11 +33,7 @@ import com.typesafe.config.Config
  *
  *  @author Lucas Satabin
  */
-abstract class StatelessSessionManager[T](val config: Config) {
-
-  /** The name of the session cookie, configured via configuration key `spray.routing.session.cookie-name` */
-  val cookieName: String =
-    config.getString("spray.routing.session.cookie-name")
+abstract class StatelessSessionManager[T](val config: Config) extends CookieManager[Map[String,T]] {
 
   /** The duration of a session, configured via configuration key `spray.routing.session.timeout` */
   val sessionTimeout: Duration =

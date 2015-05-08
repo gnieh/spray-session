@@ -63,7 +63,7 @@ class CookieBakerSessionManager(config: Config)(implicit ec: ExecutionContext) e
     Future.successful(Map())
 
   def cookify(map: Map[String,String]): Future[HttpCookie] =
-   Future(HttpCookie(name = cookieName, content = encode(map), maxAge = maxAge))
+   Future(HttpCookie(name = cookieName, content = encode(map), maxAge = maxAge, path = cookiePath, domain = cookieDomain, secure = cookieSecure, httpOnly = cookieHttpOnly))
 
   val isSigned: Boolean =
     config.getBoolean("spray.routing.session.baker.signed")
