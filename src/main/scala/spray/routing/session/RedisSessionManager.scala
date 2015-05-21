@@ -59,6 +59,15 @@ class RedisSessionManager[T](config: Config)(
       host = config.getString("spray.routing.session.redis.host"),
       port = config.getInt("spray.routing.session.redis.port"))
 
+  private val password = config.getString("spray.routing.session.redis.password")
+
+  if(password.length > 0){
+    client.auth(password).onFailure{
+      throw new ExceptionInInitializerError("redis AUTH command failed, is config spray.routing.session.redis.password correct?")
+    }
+  }
+
+
   def start(): Future[String] = {
     val id = newSid
     for {
