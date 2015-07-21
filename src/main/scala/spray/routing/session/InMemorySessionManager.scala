@@ -134,7 +134,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
 
         }
 
-      case Invalidate(id) =>
+      case Invalidate(id, expiredSessions) =>
         // instantaneously invalidate the given session id
         context.become(running(sessions - id, callbacks))
 
@@ -142,6 +142,13 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
         if(sessions.contains(id))
           for(callback <- callbacks)
             callback(id, sessions(id).map)
+
+        expiredSessions.
+          flatMap(_.get(id)).
+          foreach { session =>
+          for (callback <- callbacks)
+            callback(id, session.map)
+        }
 
         sender ! ()
 
@@ -161,7 +168,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
         context.become(running(valid, callbacks))
         // invalidate other ones
         for((id, _) <- expired)
-          self ! Invalidate(id)
+          self ! Invalidate(id, Some(expired))
 
     }
 
@@ -170,7 +177,7 @@ class InMemorySessionManager[T](config: Config)(implicit system: ActorSystem, ti
   private case object Start
   private case class Get(id: String)
   private case class Update(id: String, map: Map[String, T])
-  private case class Invalidate(id: String)
+  private case class Invalidate(id: String, expiredSessions: Option[Map[String, Session[T]]] = None)
   private case class Cookify(id: String)
   private case class OnInvalidate(callback: (String, Map[String, T]) => Unit)
   private case object Cleanup
