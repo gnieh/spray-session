@@ -1,44 +1,23 @@
 name := "spray-session"
-
 organization := "org.gnieh"
-
 version := "0.1.0-SNAPSHOT"
 
-scalaVersion := "2.11.2"
+crossScalaVersions := Seq("2.11.7", "2.10.6")
+scalaVersion := crossScalaVersions.value.head
 
-crossScalaVersions := Seq("2.11.2", "2.10.4")
-
-libraryDependencies += "io.spray" %% "spray-json" % "1.3.0" % "optional"
-
-libraryDependencies += "io.spray" %% "spray-routing" % "1.3.2"
-
-libraryDependencies += "io.spray" %% "spray-testkit" % "1.3.2" % "test"
-
-libraryDependencies += "org.specs2" %% "specs2" % "2.3.13" % "test"
-
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.5" % "provided, test"
-
-libraryDependencies += "net.debasishg" %% "redisreact" % "0.7" % "optional"
-
-scalacOptions ++= Seq("-deprecation", "-feature")
-
-osgiSettings
-
-OsgiKeys.exportPackage := Seq(
-  "spray.routing.session.directives",
-  "spray.routing.session"
+libraryDependencies ++= Seq(
+  "io.spray" %% "spray-json" % "1.3.2" % "optional",
+  "io.spray" %% "spray-routing" % "1.3.3",
+  "io.spray" %% "spray-testkit" % "1.3.3" % "test",
+  "org.specs2" %% "specs2-core" % "2.4.17" % "test",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.14" % "provided, test",
+  "net.debasishg" %% "redisreact" % "0.8" % "optional"
 )
 
-OsgiKeys.importPackage := Seq(
-  "com.redis;resolution:=optional",
-  "com.redis.*;resolution:=optional",
-  "*"
+scalacOptions ++= Seq(
+  "-deprecation",
+  "-encoding", "UTF-8",
+  "-feature",
+  "-unchecked",
+  "-Xlint"
 )
-
-OsgiKeys.additionalHeaders := Map (
-  "Bundle-Name" -> "Session Management for Spray"
-)
-
-OsgiKeys.bundleSymbolicName := "org.gnieh.spray.session"
-
-OsgiKeys.privatePackage := Seq()

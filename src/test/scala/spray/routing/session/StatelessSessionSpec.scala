@@ -42,7 +42,7 @@ abstract class StatelessSessionSpec extends Specification with Specs2RouteTest {
 
     val invalidSessionHandler = RejectionHandler {
       case InvalidSessionRejection(id) :: _ =>
-        complete(Unauthorized, s"Unknown session $id")
+        complete((Unauthorized, s"Unknown session $id"))
     }
 
     // create a new manager for each scope
