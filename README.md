@@ -41,7 +41,7 @@ class MyService(implicit val actorRefFactory: ActorSystem) extends HttpService w
   implicit val manager = new InMemorySessionManager[Int](config)
 
   val route =
-    withCookieSession() { (id, map) =>
+    cookieSession() { (id, map) =>
       get {
         val result = map.getOrElse("value", 0)
         updateSession(id, map.updated("value", result + 1)) {
